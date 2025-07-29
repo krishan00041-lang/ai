@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for Inter font and general body styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Full viewport height */
+            margin: 0;
+        }
+        /* Custom scrollbar for chat messages */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: #e2e8f0; /* Tailwind gray-200 */
+            border-radius: 10px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #94a3b8; /* Tailwind gray-400 */
+            border-radius: 10px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* Tailwind gray-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="flex flex-col w-full max-w-2xl bg-white rounded-xl shadow-lg overflow-hidden h-[90vh] md:h-[80vh]">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white p-4 rounded-t-xl flex items-center justify-between shadow-md">
+            <h1 class="text-2xl font-bold">AI Assistant</h1>
+            <!-- Optional: Add a settings icon or user avatar here -->
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.105A9.764 9.764 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+        </header>
+
+        <!-- Chat Messages Display Area -->
+        <main id="chat-messages" class="flex-1 p-4 overflow-y-auto bg-gray-50 chat-messages">
+            <!-- Messages will be appended here by JavaScript -->
+            <div class="flex justify-start mb-4">
+                <div class="bg-blue-100 text-blue-800 p-3 rounded-lg max-w-[80%] shadow-sm">
+                    Hello! How can I assist you today?
+                </div>
+            </div>
+        </main>
+
+        <!-- Input Area -->
+        <div class="p-4 bg-white border-t border-gray-200 flex items-center rounded-b-xl shadow-inner">
+            <input
+                type="text"
+                id="user-input"
+                placeholder="Type your message..."
+                class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out"
+            />
+            <button
+                id="send-button"
+                class="ml-3 px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 ease-in-out shadow-md"
+            >
+                Send
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Get references to DOM elements
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        // Function to add a message to the chat display
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('flex', 'mb-4');
+
+            if (sender === 'user') {
+                messageDiv.classList.add('justify-end');
+                messageDiv.innerHTML = `
+                    <div class="bg-blue-500 text-white p-3 rounded-lg max-w-[80%] shadow-sm">
+                        ${text}
+                    </div>
+                `;
+            } else { // sender === 'ai'
+                messageDiv.classList.add('justify-start');
+                messageDiv.innerHTML = `
+                    <div class="bg-gray-200 text-gray-800 p-3 rounded-lg max-w-[80%] shadow-sm">
+                        ${text}
+                    </div>
+                `;
+            }
+            chatMessages.appendChild(messageDiv);
+            // Scroll to the bottom of the chat
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Function to simulate AI response (replace with actual API call)
+        async function getAiResponse(message) {
+            // Display a loading indicator or disable input while waiting
+            userInput.disabled = true;
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sending...';
+
+            try {
+                // Placeholder for Gemini API call
+                // Replace with your actual API key if needed, otherwise leave as empty string
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: message }] });
+
+                const payload = { contents: chatHistory };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json(); // Await the JSON parsing
+
+                let aiText = "Sorry, I couldn't get a response."; // Default error message
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    aiText = result.candidates[0].content.parts[0].text;
+                } else {
+                    console.error("Unexpected API response structure:", result);
+                }
+
+                addMessage(aiText, 'ai');
+
+            } catch (error) {
+                console.error('Error fetching AI response:', error);
+                addMessage("Oops! Something went wrong. Please try again.", 'ai');
+            } finally {
+                // Re-enable input and button
+                userInput.disabled = false;
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send';
+                userInput.focus(); // Focus back on input field
+            }
+        }
+
+        // Event listener for send button click
+        sendButton.addEventListener('click', () => {
+            const message = userInput.value.trim();
+            if (message) {
+                addMessage(message, 'user');
+                userInput.value = ''; // Clear input field
+                getAiResponse(message); // Call AI response function
+            }
+        });
+
+        // Event listener for Enter key press in the input field
+        userInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                sendButton.click(); // Trigger send button click
+            }
+        });
+
+        // Focus on the input field when the page loads
+        window.onload = () => {
+            userInput.focus();
+        };
+    </script>
+</body>
+</html>
